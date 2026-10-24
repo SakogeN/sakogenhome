@@ -1,0 +1,1727 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>文字絵工房</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@800&display=swap&text=文字絵工房原稿組版調子刷色書き出し">
+<style>
+:root {
+  /* 組版指定書のレイアウト：左に指定欄、右に版面。スマホでは 原稿 → 版面 → 指定 の一段組み */
+  --paper: #eceef3;
+  --sheet: #f9fafc;
+  --ink: #161a23;
+  --ink-soft: #586073;
+  --rule: #cfd4de;
+  --masu: #a7b4d6;
+  --ai: #2b4a98;
+  --ai-ink: #ffffff;
+  --ai-wash: #e1e7f6;
+  --grid: rgba(43, 74, 152, 0.07);
+  --veil: rgba(43, 74, 152, 0.16);
+  --shadow: rgba(10, 14, 30, 0.22);
+  --font-display: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  --font-ui: "Zen Kaku Gothic New", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0d1016; --sheet: #141821; --ink: #e5e8ef; --ink-soft: #9ca4b5; --rule: #2a3141;
+    --masu: #3d4d7a; --ai: #93abf0; --ai-ink: #0d1016; --ai-wash: #1b2543;
+    --grid: rgba(147, 171, 240, 0.06); --veil: rgba(147, 171, 240, 0.14); --shadow: rgba(0, 0, 0, 0.55);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0d1016; --sheet: #141821; --ink: #e5e8ef; --ink-soft: #9ca4b5; --rule: #2a3141;
+  --masu: #3d4d7a; --ai: #93abf0; --ai-ink: #0d1016; --ai-wash: #1b2543;
+  --grid: rgba(147, 171, 240, 0.06); --veil: rgba(147, 171, 240, 0.14); --shadow: rgba(0, 0, 0, 0.55);
+  color-scheme: dark;
+}
+
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+.vh {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
+
+.page {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding-block: 28px 40px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* 題字：原稿用紙のマス目に一字ずつ */
+.masthead { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 28px; }
+.title {
+  margin: 0;
+  display: flex;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(30px, 4.6vw, 46px);
+  line-height: 1;
+}
+.title span {
+  display: grid;
+  place-items: center;
+  width: 1.28em;
+  height: 1.28em;
+  border: 1px solid var(--masu);
+  background: var(--sheet);
+}
+.title span + span { border-left: 0; }
+.lede { margin: 0; max-width: 40em; color: var(--ink-soft); text-wrap: pretty; }
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas: "source output" "controls output";
+  gap: 16px 28px;
+  align-items: start;
+}
+.source { grid-area: source; }
+.controls { grid-area: controls; }
+.output { grid-area: output; min-width: 0; position: sticky; top: 16px; }
+@media (max-width: 920px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas: "source" "output" "controls";
+  }
+  .output { position: static; }
+}
+
+/* 指定欄 */
+.sheet { background: var(--sheet); border: 1px solid var(--rule); }
+.sheet > section { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 14px; }
+.sheet > section + section { border-top: 1px solid var(--rule); }
+.sheet h2 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.14em;
+}
+.sheet h2::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+
+.field { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.field > label, .field legend, .field-head label { font-weight: 500; }
+.field legend { padding: 0; margin-bottom: 6px; }
+.field-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+output {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.hint { margin: 0; font-size: 12px; color: var(--ink-soft); }
+.hint:empty { display: none; }
+input[type="range"] { width: 100%; margin: 0; accent-color: var(--ai); }
+select, input[type="text"] {
+  width: 100%;
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 7px 10px;
+}
+.scale-ends { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-soft); margin-top: -2px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { position: relative; display: inline-flex; }
+.chip input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.chip span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 11px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper);
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.chip em { font-style: normal; font-family: var(--font-num); font-size: 11px; }
+.chip input:checked + span { background: var(--ai-wash); border-color: var(--ai); color: var(--ink); }
+.chip input:focus-visible + span { outline: 2px solid var(--ai); outline-offset: 2px; }
+
+.ramp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--paper);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.ramp-glyphs {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1;
+  letter-spacing: 0;
+  color: var(--ink);
+  text-align: center;
+}
+
+.seg {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.seg label { position: relative; display: block; }
+.seg input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.seg span { display: block; padding: 6px 4px; text-align: center; font-family: var(--font-num); font-size: 12px; }
+.seg label + label span { border-left: 1px solid var(--rule); }
+.seg input:checked + span { background: var(--ai); color: var(--ai-ink); }
+.seg input:focus-visible + span { outline: 2px solid var(--ai); outline-offset: -3px; }
+
+.check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.check input { accent-color: var(--ai); width: 16px; height: 16px; margin: 0; }
+
+.palettes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.swatch { position: relative; display: block; }
+.swatch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.swatch span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px 7px 7px;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  font-size: 13px;
+}
+.swatch b {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 3px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+.swatch input:checked + span { border-color: var(--ai); background: var(--ai-wash); }
+.swatch input:focus-visible + span { outline: 2px solid var(--ai); outline-offset: 2px; }
+
+/* 原稿 */
+.source > section { gap: 12px; }
+.drop {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 10px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: var(--paper);
+  border: 1px dashed var(--masu);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.drop:hover, .drop.over { border-color: var(--ai); background: var(--ai-wash); }
+.drop img {
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 3px;
+  background: var(--rule);
+  display: block;
+}
+.drop-text { display: grid; gap: 2px; }
+.drop-text strong { font-weight: 700; color: var(--ai); }
+.drop-text span { font-size: 12px; color: var(--ink-soft); }
+.src-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.src-meta { margin: 0; font-size: 12px; color: var(--ink-soft); min-width: 0; overflow-wrap: anywhere; }
+.linkish {
+  font: inherit;
+  font-size: 12px;
+  color: var(--ai);
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* 版面 */
+.output { display: flex; flex-direction: column; gap: 10px; }
+.out-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; }
+.tabs { display: inline-flex; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; background: var(--sheet); }
+.tabs button {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 16px;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.tabs button + button { border-left: 1px solid var(--rule); }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--sheet); }
+.stats { margin: 0; font-family: var(--font-num); font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.stats .busy { color: var(--ai); }
+
+.stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 260px;
+  padding: 16px;
+  overflow: auto;
+  border: 1px solid var(--rule);
+  background-color: var(--sheet);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+.stage.zoomed { place-items: start; max-height: min(78vh, 900px); }
+@media (max-width: 920px) { .stage.zoomed { max-height: 70vh; } }
+.progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0;
+  background: var(--ai);
+  opacity: 0;
+  transition: width 0.15s linear, opacity 0.2s;
+  z-index: 2;
+}
+.stage[data-busy="1"] .progress { opacity: 1; }
+.frame { position: relative; line-height: 0; box-shadow: 0 10px 30px -14px var(--shadow); }
+.frame canvas { display: block; max-width: none; }
+.frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; max-width: none; }
+#textOut {
+  margin: 0;
+  justify-self: stretch;
+  align-self: stretch;
+  max-height: 72vh;
+  overflow: auto;
+  padding: 12px;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: pre;
+  font-kerning: none;
+  user-select: text;
+}
+
+.out-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.spacer { flex: 1; }
+.btn {
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--sheet);
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover { border-color: var(--ai); }
+.btn:disabled { opacity: 0.45; cursor: default; border-color: var(--rule); }
+.btn[aria-pressed="true"] { background: var(--ai-wash); border-color: var(--ai); }
+.btn.primary { background: var(--ai); border-color: var(--ai); color: var(--ai-ink); font-weight: 500; }
+#compare { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.toast { margin: 0; min-height: 1.6em; font-size: 13px; color: var(--ai); }
+
+.foot { color: var(--ink-soft); font-size: 12px; border-top: 1px solid var(--rule); padding-top: 14px; }
+
+.veil {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  background: var(--veil);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+.veil p {
+  margin: 0;
+  padding: 18px 26px;
+  background: var(--sheet);
+  border: 1px dashed var(--ai);
+  border-radius: 8px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 0.1em;
+}
+
+@media (max-width: 520px) {
+  .lede { font-size: 13px; }
+  .out-actions .spacer { display: none; }
+  .out-actions .btn { flex: 1 1 auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <h1 class="title" aria-label="文字絵工房"><span>文</span><span>字</span><span>絵</span><span>工</span><span>房</span></h1>
+    <p class="lede">画像を日本語の文字で描き直します。1マスずつ画像の濃淡と形を読み取り、候補の文字の中からいちばん似ている一字を選んで並べます。</p>
+  </header>
+
+  <main class="workspace">
+    <div class="sheet source">
+      <section aria-labelledby="h-source">
+        <h2 id="h-source">原稿</h2>
+        <button type="button" class="drop" id="drop" aria-describedby="srcMeta">
+          <img id="thumb" alt="" width="96" height="72">
+          <span class="drop-text"><strong>画像を選ぶ</strong><span>ここへドロップ、または Ctrl+V で貼り付け</span></span>
+        </button>
+        <input type="file" id="file" accept="image/*" class="vh" tabindex="-1" aria-hidden="true">
+        <div class="src-row">
+          <p class="src-meta" id="srcMeta">サンプル画像（富士と鳥居）</p>
+          <button type="button" class="linkish" id="useSample" hidden>サンプルに戻す</button>
+        </div>
+      </section>
+    </div>
+
+    <section class="output" aria-labelledby="h-out">
+      <h2 id="h-out" class="vh">仕上がり</h2>
+      <div class="out-bar">
+        <div class="tabs" role="tablist" aria-label="表示の切り替え">
+          <button type="button" role="tab" id="tabImg" aria-selected="true" aria-controls="frame">画像</button>
+          <button type="button" role="tab" id="tabTxt" aria-selected="false" aria-controls="textOut" tabindex="-1">テキスト</button>
+        </div>
+        <p class="stats" id="stats"></p>
+      </div>
+      <div class="stage" id="stage" data-busy="1" data-done="0">
+        <div class="progress" id="progress" aria-hidden="true"></div>
+        <div class="frame" id="frame" role="tabpanel" aria-labelledby="tabImg">
+          <canvas id="art" role="img" aria-label="文字で描き直した画像" width="10" height="10"></canvas>
+          <img id="orig" alt="元の画像" hidden>
+        </div>
+        <pre id="textOut" role="tabpanel" aria-labelledby="tabTxt" tabindex="0" hidden></pre>
+      </div>
+      <div class="out-actions">
+        <button type="button" class="btn" id="compare" aria-pressed="false">押している間だけ原画を表示</button>
+        <button type="button" class="btn" id="zoom" aria-pressed="false">拡大して見る</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn" id="copyText">テキストをコピー</button>
+        <button type="button" class="btn" id="saveTxt">テキストを保存</button>
+        <button type="button" class="btn primary" id="savePng">PNGで保存</button>
+      </div>
+      <p class="toast" id="toast" role="status" aria-live="polite"></p>
+    </section>
+
+    <div class="sheet controls">
+      <section aria-labelledby="h-chars">
+        <h2 id="h-chars">文字</h2>
+        <div class="chips" id="chips" role="group" aria-label="使う文字の種類"></div>
+        <div class="field">
+          <label for="custom">好きな文字を足す</label>
+          <input type="text" id="custom" placeholder="例：自分の名前、好きな言葉" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="ramp" title="候補の文字を淡い順に並べた見本">
+          <span>淡</span><span class="ramp-glyphs" id="ramp"></span><span>濃</span>
+        </div>
+        <p class="hint" id="charsHint"></p>
+      </section>
+
+      <section aria-labelledby="h-kumi">
+        <h2 id="h-kumi">組版</h2>
+        <div class="field">
+          <div class="field-head"><label for="cols">字詰め（1行の文字数）</label><output id="colsOut" for="cols"></output></div>
+          <input type="range" id="cols" min="20" max="300" step="2" value="100">
+        </div>
+        <div class="field">
+          <label for="font">書体</label>
+          <select id="font"></select>
+          <p class="hint" id="fontHint"></p>
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="weight">太さ</label><output id="weightOut" for="weight"></output></div>
+          <input type="range" id="weight" min="100" max="900" step="100" value="600">
+        </div>
+        <fieldset class="field">
+          <legend>形を見る細かさ（1マスを何分割して比べるか）</legend>
+          <div class="seg" id="gridSeg">
+            <label><input type="radio" name="grid" id="grid3" value="3"><span>3×3</span></label>
+            <label><input type="radio" name="grid" id="grid4" value="4"><span>4×4</span></label>
+            <label><input type="radio" name="grid" id="grid5" value="5"><span>5×5</span></label>
+            <label><input type="radio" name="grid" id="grid6" value="6"><span>6×6</span></label>
+          </div>
+        </fieldset>
+      </section>
+
+      <section aria-labelledby="h-tone">
+        <h2 id="h-tone">調子</h2>
+        <div class="field">
+          <div class="field-head"><label for="shape">濃淡と形、どちらに合わせるか</label><output id="shapeOut" for="shape"></output></div>
+          <input type="range" id="shape" min="0" max="100" step="1" value="60">
+          <div class="scale-ends" aria-hidden="true"><span>濃淡を優先</span><span>形を優先</span></div>
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="sharpen">輪郭の強調</label><output id="sharpenOut" for="sharpen"></output></div>
+          <input type="range" id="sharpen" min="0" max="100" step="1" value="40">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="bright">明るさ</label><output id="brightOut" for="bright"></output></div>
+          <input type="range" id="bright" min="-100" max="100" step="1" value="0">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="contrast">コントラスト</label><output id="contrastOut" for="contrast"></output></div>
+          <input type="range" id="contrast" min="-100" max="100" step="1" value="0">
+        </div>
+        <label class="check"><input type="checkbox" id="auto">明暗の幅を自動で整える</label>
+        <label class="check"><input type="checkbox" id="dither">誤差拡散で中間の濃さを出す</label>
+      </section>
+
+      <section aria-labelledby="h-color">
+        <h2 id="h-color">刷色</h2>
+        <div class="palettes" id="palettes" role="radiogroup" aria-labelledby="h-color"></div>
+      </section>
+
+      <section aria-labelledby="h-export" id="exportSection">
+        <h2 id="h-export">書き出し</h2>
+        <div class="field">
+          <label for="exportCell">PNGの1文字の大きさ</label>
+          <select id="exportCell"></select>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="foot">画像の処理はすべてこの画面の中で行われ、どこにも送信されません。</footer>
+</div>
+<div class="veil" id="veil" hidden><p>ここで離すと読み込みます</p></div>
+
+<script>
+(() => {
+'use strict';
+
+const $ = (id) => document.getElementById(id);
+const tick = () => new Promise((r) => setTimeout(r, 0));
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const ZSP = String.fromCodePoint(0x3000); // 全角スペース
+const BAD = String.fromCodePoint(0xFFFD);
+
+/* ================= 文字セット（JIS X 0208 の区から生成） ================= */
+
+const sjis = (() => { try { return new TextDecoder('shift_jis', { fatal: true }); } catch (e) { return null; } })();
+
+function jisRow(row) {
+  if (!sjis) return '';
+  let out = '';
+  const s1 = (row <= 62 ? 0x81 : 0xC1) + ((row - 1) >> 1);
+  for (let cell = 1; cell <= 94; cell++) {
+    const s2 = row % 2 ? cell + (cell <= 63 ? 0x3F : 0x40) : cell + 0x9E;
+    try {
+      const ch = sjis.decode(new Uint8Array([s1, s2]));
+      if (ch && ch !== BAD && Array.from(ch).length === 1) out += ch;
+    } catch (e) { /* 未定義の位置 */ }
+  }
+  return out;
+}
+const jisRows = (a, b) => { let s = ''; for (let r = a; r <= b; r++) s += jisRow(r); return s; };
+const uniRange = (a, b) => { let s = ''; for (let c = a; c <= b; c++) s += String.fromCodePoint(c); return s; };
+
+const SETS = [
+  { id: 'hira', label: 'ひらがな', make: () => jisRow(4) || uniRange(0x3041, 0x3093) },
+  { id: 'kata', label: 'カタカナ', make: () => (jisRow(5) || uniRange(0x30A1, 0x30F6)) + 'ー' },
+  { id: 'kanji1', label: '漢字 第1水準', make: () => jisRows(16, 47) || uniRange(0x4E00, 0x5BFF) },
+  { id: 'kanji2', label: '漢字 第2水準', make: () => jisRows(48, 84) },
+  { id: 'kigo', label: '記号', make: () => Array.from(jisRows(1, 2)).filter((c) => c !== ZSP && c !== 'ー').join('') },
+  { id: 'eisu', label: '全角英数', make: () => jisRow(3) },
+  { id: 'keisen', label: '罫線', make: () => jisRow(8) },
+  { id: 'blank', label: '全角スペース', make: () => ZSP },
+];
+const setCache = new Map();
+function setChars(id) {
+  if (!setCache.has(id)) {
+    const s = SETS.find((x) => x.id === id);
+    setCache.set(id, s ? Array.from(s.make()) : []);
+  }
+  return setCache.get(id);
+}
+
+// 半角英数は全角に、半角カナは全角カナにそろえる（テキストで桁がずれないように）
+function customChars(str) {
+  const out = [];
+  for (const ch0 of str.normalize('NFC')) {
+    const cp = ch0.codePointAt(0);
+    if (cp <= 0x20 || cp === 0x7F || /\s/.test(ch0)) continue;
+    let ch = ch0;
+    if (cp > 0x20 && cp < 0x7F) ch = String.fromCodePoint(cp + 0xFEE0);
+    else if (cp >= 0xFF61 && cp <= 0xFF9F) ch = ch0.normalize('NFKC');
+    out.push(ch);
+  }
+  return out;
+}
+
+/* ================= 書体 ================= */
+
+const DEVICE_GOTHIC = '"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo","Noto Sans CJK JP","Noto Sans JP",sans-serif';
+const DEVICE_MINCHO = '"Hiragino Mincho ProN","Yu Mincho","MS Mincho","Noto Serif CJK JP","Noto Serif JP",serif';
+const W_ALL = [100, 200, 300, 400, 500, 600, 700, 800, 900];
+
+const FONTS = [
+  { id: 'dev-gothic', label: '端末のゴシック体', group: 'dev', stack: DEVICE_GOTHIC, weights: W_ALL },
+  { id: 'dev-mincho', label: '端末の明朝体', group: 'dev', stack: DEVICE_MINCHO, weights: W_ALL },
+  { id: 'yu-gothic', label: '游ゴシック', group: 'local', family: 'Yu Gothic', weights: [300, 400, 500, 700] },
+  { id: 'meiryo', label: 'メイリオ', group: 'local', family: 'Meiryo', weights: [400, 700] },
+  { id: 'ms-gothic', label: 'ＭＳ ゴシック', group: 'local', family: 'MS Gothic', weights: [400] },
+  { id: 'yu-mincho', label: '游明朝', group: 'local', family: 'Yu Mincho', mincho: true, weights: [400, 600] },
+  { id: 'ms-mincho', label: 'ＭＳ 明朝', group: 'local', family: 'MS Mincho', mincho: true, weights: [400] },
+  { id: 'hiragino', label: 'ヒラギノ角ゴシック', group: 'local', family: 'Hiragino Sans', weights: [300, 400, 500, 600, 700, 800, 900] },
+  { id: 'hiragino-m', label: 'ヒラギノ明朝', group: 'local', family: 'Hiragino Mincho ProN', mincho: true, weights: [300, 600] },
+  { id: 'noto-sans', label: 'Noto Sans JP（ゴシック）', group: 'web', family: 'Noto Sans JP', css: 'Noto+Sans+JP:wght@100..900', weights: W_ALL },
+  { id: 'noto-serif', label: 'Noto Serif JP（明朝）', group: 'web', family: 'Noto Serif JP', css: 'Noto+Serif+JP:wght@200..900', mincho: true, weights: [200, 300, 400, 500, 600, 700, 800, 900] },
+  { id: 'mplus', label: 'M PLUS 1（ゴシック）', group: 'web', family: 'M PLUS 1', css: 'M+PLUS+1:wght@100..900', weights: W_ALL },
+  { id: 'zen-maru', label: 'Zen Maru Gothic（丸ゴシック）', group: 'web', family: 'Zen Maru Gothic', css: 'Zen+Maru+Gothic:wght@300;400;500;700;900', weights: [300, 400, 500, 700, 900] },
+  { id: 'biz-ud', label: 'BIZ UDゴシック', group: 'web', family: 'BIZ UDGothic', css: 'BIZ+UDGothic:wght@400;700', weights: [400, 700] },
+  { id: 'biz-udm', label: 'BIZ UD明朝', group: 'web', family: 'BIZ UDMincho', css: 'BIZ+UDMincho:wght@400;700', mincho: true, weights: [400, 700] },
+  { id: 'dot', label: 'DotGothic16（ドット）', group: 'web', family: 'DotGothic16', css: 'DotGothic16', weights: [400] },
+  { id: 'dela', label: 'Dela Gothic One（極太）', group: 'web', family: 'Dela Gothic One', css: 'Dela+Gothic+One', weights: [400] },
+  { id: 'syuku', label: 'Yuji Syuku（毛筆）', group: 'web', family: 'Yuji Syuku', css: 'Yuji+Syuku', mincho: true, weights: [400] },
+  { id: 'klee', label: 'Klee One（鉛筆書き）', group: 'web', family: 'Klee One', css: 'Klee+One:wght@400;600', weights: [400, 600] },
+  { id: 'kurenaido', label: 'Zen Kurenaido（筆ペン）', group: 'web', family: 'Zen Kurenaido', css: 'Zen+Kurenaido', weights: [400] },
+  { id: 'hachi', label: 'Hachi Maru Pop（丸文字）', group: 'web', family: 'Hachi Maru Pop', css: 'Hachi+Maru+Pop', weights: [400] },
+];
+for (const f of FONTS) if (f.family) f.stack = `"${f.family}",${f.mincho ? DEVICE_MINCHO : DEVICE_GOTHIC}`;
+
+// その端末に入っている書体かどうかを、描画結果の違いで確かめる
+function hasLocalFont(family) {
+  const c = document.createElement('canvas');
+  c.width = 130; c.height = 40;
+  const x = c.getContext('2d', { willReadFrequently: true });
+  const draw = (stack) => {
+    x.clearRect(0, 0, 130, 40);
+    x.font = `28px ${stack}`;
+    x.textBaseline = 'top';
+    x.fillText('永あア字', 0, 4);
+    return x.getImageData(0, 0, 130, 40).data;
+  };
+  for (const base of ['monospace', 'serif', 'sans-serif']) {
+    const a = draw(base), b = draw(`"${family}",${base}`);
+    for (let i = 3; i < a.length; i += 4) if (a[i] !== b[i]) return true;
+  }
+  return false;
+}
+const availableFonts = FONTS.filter((f) => f.group !== 'local' || hasLocalFont(f.family));
+const fontById = (id) => availableFonts.find((f) => f.id === id) || availableFonts[0];
+const snapWeight = (f, w) => f.weights.reduce((a, b) => (Math.abs(b - w) < Math.abs(a - w) ? b : a));
+
+const cssPromises = new Map();
+function loadFontCss(param) {
+  if (!cssPromises.has(param)) {
+    cssPromises.set(param, new Promise((resolve) => {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = `https://fonts.googleapis.com/css2?family=${param}&display=block`;
+      link.onload = () => resolve(true);
+      link.onerror = () => resolve(false);
+      setTimeout(() => resolve(false), 12000);
+      document.head.appendChild(link);
+    }));
+  }
+  return cssPromises.get(param);
+}
+const fontsReady = new Set();
+async function ensureFont(font, weight, text) {
+  const key = `${font.id}|${weight}`;
+  if (!font.css || fontsReady.has(key)) return true;
+  let ok = await loadFontCss(font.css);
+  if (ok) {
+    try {
+      const faces = await Promise.race([
+        document.fonts.load(`${weight} 40px "${font.family}"`, text),
+        new Promise((r) => setTimeout(() => r(null), 45000)),
+      ]);
+      ok = !!(faces && faces.length);
+    } catch (e) { ok = false; }
+  }
+  if (ok) fontsReady.add(key);
+  return ok;
+}
+
+/* ================= 刷色 ================= */
+
+const PALETTES = {
+  sumi: { label: '白地に墨', bg: '#ffffff', fg: '#17171b', inkDark: true },
+  shiro: { label: '黒地に白', bg: '#0c0c0f', fg: '#f2f1ec', inkDark: false },
+  iro: { label: 'カラー・黒地', bg: '#0c0c0f', fg: '#f2f1ec', inkDark: false, color: 'lift' },
+  iroW: { label: 'カラー・白地', bg: '#ffffff', fg: '#17171b', inkDark: true, color: 'deep' },
+};
+
+/* ================= 設定 ================= */
+
+const DEFAULTS = {
+  cols: 100, grid: 4, font: 'dev-gothic', weight: 600,
+  sets: ['hira', 'kata', 'kanji1'], custom: '',
+  shape: 60, sharpen: 40, bright: 0, contrast: 0, auto: true, dither: false,
+  palette: 'sumi', exportCell: 16,
+};
+const STORE_KEY = 'mojie-settings-v1';
+function loadSaved() {
+  try {
+    const v = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    if (!v || typeof v !== 'object') return {};
+    const out = {};
+    for (const k of Object.keys(DEFAULTS)) if (typeof v[k] === typeof DEFAULTS[k]) out[k] = v[k];
+    if (out.sets && !Array.isArray(out.sets)) delete out.sets;
+    if (out.palette && !PALETTES[out.palette]) delete out.palette;
+    return out;
+  } catch (e) { return {}; }
+}
+const state = Object.assign({}, DEFAULTS, loadSaved());
+state.cols = clamp(Math.round(state.cols / 2) * 2, 20, 300);
+state.grid = [3, 4, 5, 6].includes(state.grid) ? state.grid : 4;
+state.font = fontById(state.font).id;
+let saveTimer = 0;
+function persist() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* 保存できない環境 */ } }, 300);
+}
+
+function currentChars() {
+  const list = [], seen = new Set();
+  const add = (ch) => { if (!seen.has(ch)) { seen.add(ch); list.push(ch); } };
+  for (const s of SETS) if (state.sets.includes(s.id)) setChars(s.id).forEach(add);
+  customChars(state.custom).forEach(add);
+  return list;
+}
+
+/* ================= 文字の形を測る ================= */
+
+const atlas = document.createElement('canvas');
+const atlasCtx = atlas.getContext('2d', { willReadFrequently: true });
+const glyphCache = new Map();
+
+// 各文字を N×N のマスに分け、マスごとの墨の量（0〜1）を測る
+async function getGlyphs(chars, font, weight, N, alive) {
+  const key = `${font.id}|${weight}|${N}|${chars.join('')}`;
+  if (glyphCache.has(key)) return glyphCache.get(key);
+
+  const S = 8, R = N * S, pad = Math.round(R * 0.3), C = R + pad * 2;
+  const per = Math.max(4, Math.floor(1800 / C));
+  atlas.width = per * C;
+  atlas.height = per * C;
+  const ctx = atlasCtx;
+  ctx.font = `${weight} ${R}px ${font.stack}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#000';
+  // 「国」の字面が上下中央に来るように、ベースラインの位置を決める
+  const m = ctx.measureText('国');
+  const yOff = (m.actualBoundingBoxAscent - m.actualBoundingBoxDescent) / 2 / R;
+
+  const D = N * N, K0 = chars.length;
+  const raw = new Float32Array(K0 * D);
+  const batch = per * per, Wpx = atlas.width;
+  for (let start = 0; start < K0; start += batch) {
+    const end = Math.min(K0, start + batch);
+    ctx.clearRect(0, 0, atlas.width, atlas.height);
+    for (let i = start; i < end; i++) {
+      const j = i - start;
+      ctx.fillText(chars[i], (j % per) * C + pad + R / 2, ((j / per) | 0) * C + pad + R / 2 + yOff * R);
+    }
+    const used = Math.ceil((end - start) / per) * C;
+    const px = ctx.getImageData(0, 0, Wpx, used).data;
+    for (let i = start; i < end; i++) {
+      const j = i - start, gx = (j % per) * C + pad, gy = ((j / per) | 0) * C + pad, o = i * D;
+      for (let by = 0; by < N; by++) {
+        for (let y = by * S; y < by * S + S; y++) {
+          let p = ((gy + y) * Wpx + gx) * 4 + 3;
+          for (let bx = 0; bx < N; bx++) {
+            let acc = 0;
+            for (let x = 0; x < S; x++, p += 4) acc += px[p];
+            raw[o + by * N + bx] += acc;
+          }
+        }
+      }
+    }
+    await tick();
+    if (!alive()) return null;
+  }
+
+  // 正規化・重複除去
+  const inv = 1 / (255 * S * S);
+  const keep = [], seen = new Set();
+  let dmax = 0;
+  for (let i = 0; i < K0; i++) {
+    const o = i * D;
+    let sum = 0, sig = '';
+    for (let j = 0; j < D; j++) { raw[o + j] *= inv; sum += raw[o + j]; }
+    if (sum < 1e-3 && chars[i] !== ZSP) continue; // 描けなかった文字
+    for (let j = 0; j < D; j++) sig += String.fromCharCode(48 + Math.round(raw[o + j] * 64));
+    if (seen.has(sig)) continue;
+    seen.add(sig);
+    keep.push(i);
+    dmax = Math.max(dmax, sum / D);
+  }
+  const K = keep.length;
+  const G = {
+    key, font, weight, N, D, K, yOff, dmax,
+    chars: new Array(K),
+    mean: new Float32Array(K),
+    res: new Float32Array(K * D),
+    energy: new Float32Array(K),
+    norm: new Float32Array(K),
+    tilt: new Float32Array(K),
+    order: null,
+    sorted: new Float32Array(K),
+  };
+  // 2×2 に分けたときの片寄り（左右上下のどこかに墨が寄っているか）を測るための重み。
+  // 中央付近のマスはなだらかに両側へ振り分け、中央の横画・縦画を片寄りと見なさないようにする。
+  const side = new Float32Array(N);
+  for (let b = 0; b < N; b++) side[b] = clamp(0.5 + (N / 2 - (b + 0.5)) / (N / 2), 0, 1);
+  const qArea = (N / 2) * (N / 2);
+  const scale = dmax > 0 ? 1 / dmax : 1;
+  for (let k = 0; k < K; k++) {
+    const i = keep[k], o = i * D;
+    let s = 0;
+    for (let j = 0; j < D; j++) s += raw[o + j];
+    const mu = (s / D) * scale;
+    let e = 0;
+    const q = [0, 0, 0, 0];
+    for (let j = 0; j < D; j++) {
+      const v = raw[o + j] * scale, r = v - mu;
+      G.res[k * D + j] = r;
+      e += r * r;
+      const wx = side[j % N], wy = side[(j / N) | 0];
+      q[0] += v * wx * wy; q[1] += v * (1 - wx) * wy; q[2] += v * wx * (1 - wy); q[3] += v * (1 - wx) * (1 - wy);
+    }
+    let t = 0;
+    for (let n = 0; n < 4; n++) { const d = q[n] / qArea - mu; t += d * d; }
+    G.chars[k] = chars[i];
+    G.mean[k] = mu;
+    G.energy[k] = e;
+    G.norm[k] = Math.sqrt(e);
+    G.tilt[k] = t * (D / 4);
+  }
+  G.order = Int32Array.from({ length: K }, (_, k) => k).sort((a, b) => G.mean[a] - G.mean[b]);
+  for (let i = 0; i < K; i++) G.sorted[i] = G.mean[G.order[i]];
+
+  glyphCache.set(key, G);
+  if (glyphCache.size > 6) glyphCache.delete(glyphCache.keys().next().value);
+  return G;
+}
+
+/* ================= 画像を読む ================= */
+
+const gridCache = new Map();
+
+function resample(el, sw, sh, w, h) {
+  let cur = el, cw = sw, ch = sh;
+  // 一気に縮めると細部がちらつくので、半分ずつ縮める
+  while (cw > w * 2 || ch > h * 2) {
+    const nw = Math.max(w, Math.ceil(cw / 2)), nh = Math.max(h, Math.ceil(ch / 2));
+    const c = document.createElement('canvas');
+    c.width = nw; c.height = nh;
+    const x = c.getContext('2d');
+    x.imageSmoothingEnabled = true;
+    x.imageSmoothingQuality = 'high';
+    x.drawImage(cur, 0, 0, cw, ch, 0, 0, nw, nh);
+    cur = c; cw = nw; ch = nh;
+  }
+  const out = document.createElement('canvas');
+  out.width = w; out.height = h;
+  const x = out.getContext('2d', { willReadFrequently: true });
+  x.imageSmoothingEnabled = true;
+  x.imageSmoothingQuality = 'high';
+  x.drawImage(cur, 0, 0, cw, ch, 0, 0, w, h);
+  return x.getImageData(0, 0, w, h).data;
+}
+
+function gridSize(cols) {
+  let c = cols;
+  let rows = Math.max(1, Math.round((c * source.h) / source.w));
+  const MAX_CELLS = 100000;
+  if (c * rows > MAX_CELLS) {
+    c = Math.max(10, Math.floor(Math.sqrt((MAX_CELLS * source.w) / source.h)));
+    rows = Math.max(1, Math.round((c * source.h) / source.w));
+  }
+  return { cols: c, rows };
+}
+
+function getGrid(cols0, N) {
+  const { cols, rows } = gridSize(cols0);
+  const key = `${source.id}|${cols}|${N}`;
+  if (gridCache.has(key)) return gridCache.get(key);
+  const W2 = cols * N, H2 = rows * N, n = W2 * H2;
+  const px = resample(source.el, source.w, source.h, W2, H2);
+  const lum = new Float32Array(n), alpha = new Float32Array(n);
+  for (let i = 0, p = 0; i < n; i++, p += 4) {
+    lum[i] = (0.299 * px[p] + 0.587 * px[p + 1] + 0.114 * px[p + 2]) / 255;
+    alpha[i] = px[p + 3] / 255;
+  }
+  const colors = new Uint8ClampedArray(cols * rows * 3);
+  for (let cy = 0; cy < rows; cy++) {
+    for (let cx = 0; cx < cols; cx++) {
+      let r = 0, g = 0, b = 0, aw = 0;
+      for (let y = 0; y < N; y++) {
+        let p = ((cy * N + y) * W2 + cx * N) * 4;
+        for (let x = 0; x < N; x++, p += 4) {
+          const a = px[p + 3];
+          r += px[p] * a; g += px[p + 1] * a; b += px[p + 2] * a; aw += a;
+        }
+      }
+      const o = (cy * cols + cx) * 3;
+      if (aw > 0) { colors[o] = r / aw; colors[o + 1] = g / aw; colors[o + 2] = b / aw; }
+    }
+  }
+  const grid = { key, cols, rows, N, W2, H2, lum, alpha, colors };
+  gridCache.set(key, grid);
+  if (gridCache.size > 4) gridCache.delete(gridCache.keys().next().value);
+  return grid;
+}
+
+function levels(lum, alpha) {
+  const hist = new Float64Array(256);
+  let tot = 0;
+  for (let i = 0; i < lum.length; i++) {
+    const a = alpha[i];
+    if (a <= 0) continue;
+    hist[Math.min(255, (lum[i] * 255) | 0)] += a;
+    tot += a;
+  }
+  if (tot <= 0) return [0, 1];
+  const q = (f) => {
+    let acc = 0;
+    for (let i = 0; i < 256; i++) { acc += hist[i]; if (acc >= tot * f) return i / 255; }
+    return 1;
+  };
+  let lo = q(0.005), hi = q(0.995) + 1 / 255;
+  if (hi - lo < 0.2) { const c = (lo + hi) / 2; lo = Math.max(0, c - 0.1); hi = Math.min(1, c + 0.1); }
+  return [lo, hi];
+}
+
+function blur(src, W, H, sigma) {
+  const r = Math.max(1, Math.ceil(sigma * 2.5));
+  const k = new Float32Array(2 * r + 1);
+  let s = 0;
+  for (let i = -r; i <= r; i++) { k[i + r] = Math.exp(-(i * i) / (2 * sigma * sigma)); s += k[i + r]; }
+  for (let i = 0; i < k.length; i++) k[i] /= s;
+  const tmp = new Float32Array(W * H), out = new Float32Array(W * H);
+  for (let y = 0; y < H; y++) {
+    const row = y * W;
+    for (let x = 0; x < W; x++) {
+      let acc = 0;
+      for (let t = -r; t <= r; t++) acc += src[row + clamp(x + t, 0, W - 1)] * k[t + r];
+      tmp[row + x] = acc;
+    }
+  }
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      let acc = 0;
+      for (let t = -r; t <= r; t++) acc += tmp[clamp(y + t, 0, H - 1) * W + x] * k[t + r];
+      out[y * W + x] = acc;
+    }
+  }
+  return out;
+}
+
+// 画像を「そのマスに置きたい墨の量」の地図に変える
+function makeTarget(grid, inkDark) {
+  const { lum, alpha, W2, H2, N } = grid;
+  const n = lum.length, T = new Float32Array(n);
+  let lo = 0, hi = 1;
+  if (state.auto) [lo, hi] = levels(lum, alpha);
+  const inv = 1 / Math.max(1e-3, hi - lo);
+  const k = Math.pow(2, (state.contrast / 100) * 1.6);
+  const b = (state.bright / 100) * 0.5;
+  for (let i = 0; i < n; i++) {
+    let v = (lum[i] - lo) * inv;
+    v = (v - 0.5) * k + 0.5 + b;
+    v = v < 0 ? 0 : v > 1 ? 1 : v;
+    T[i] = (inkDark ? 1 - v : v) * alpha[i];
+  }
+  const amt = (state.sharpen / 100) * 1.2;
+  if (amt > 0) {
+    const bl = blur(T, W2, H2, N * 0.6);
+    for (let i = 0; i < n; i++) {
+      const v = T[i] + amt * (T[i] - bl[i]);
+      T[i] = v < -0.4 ? -0.4 : v > 1.4 ? 1.4 : v;
+    }
+  }
+  return T;
+}
+
+/* ================= いちばん似ている文字を選ぶ ================= */
+// 距離 = wB·D·(濃さの差)² + wS·{α·|形の差|² + β·(文字の片寄り)}
+// α はそのマスの画像にある輪郭の強さ（0〜1）。平らなマスでは濃さで選び、輪郭のあるマスほど形で選ぶ。
+// 片寄りの項は、平らなマスに偏った形の文字が入って模様が乱れるのを防ぐ。
+// 濃さの近い順に調べ、見込みのない候補は打ち切る。
+
+async function matchCells(T, grid, G, alive, onProgress) {
+  const { cols, rows, N, W2 } = grid;
+  const D = N * N, K = G.K;
+  const { mean, res, energy, norm, tilt, order, sorted } = G;
+  const wS = state.shape / 50, wB = ((100 - state.shape) / 50) * D;
+  const tau = 0.03 * D, beta = 0.3;
+  // 画像のいちばん淡いところ → 候補でいちばん淡い文字、になるよう濃さの幅を合わせる
+  const lift = sorted[0], span = 1 - lift;
+  const out = new Int32Array(cols * rows);
+  const cell = new Float32Array(D);
+  const dither = state.dither;
+  let errCur = new Float32Array(cols + 2), errNext = new Float32Array(cols + 2);
+  let last = performance.now();
+
+  for (let cy = 0; cy < rows; cy++) {
+    for (let cx = 0; cx < cols; cx++) {
+      let sum = 0;
+      for (let y = 0; y < N; y++) {
+        const off = (cy * N + y) * W2 + cx * N;
+        for (let x = 0; x < N; x++) { const v = T[off + x]; cell[y * N + x] = v; sum += v; }
+      }
+      const avg = sum / D, m0 = lift + span * avg;
+      let eT = 0;
+      for (let j = 0; j < D; j++) { const r = span * (cell[j] - avg); cell[j] = r; eT += r * r; }
+      const mu = dither ? m0 + errCur[cx + 1] : m0;
+      const nT = Math.sqrt(eT);
+      const a = eT / (eT + tau);
+
+      let lo = 0, hi = K;
+      while (lo < hi) { const mid = (lo + hi) >> 1; if (sorted[mid] < mu) lo = mid + 1; else hi = mid; }
+      let L = lo - 1, H = lo, best = Infinity, bestK = order[Math.min(lo, K - 1)];
+      while (L >= 0 || H < K) {
+        const dl = L >= 0 ? mu - sorted[L] : Infinity;
+        const dh = H < K ? sorted[H] - mu : Infinity;
+        let i, dm;
+        if (dl <= dh) { i = L--; dm = dl; } else { i = H++; dm = dh; }
+        const bt = wB * dm * dm;
+        if (bt >= best) break;
+        const g = order[i];
+        const dn = nT - norm[g];
+        const floor = bt + wS * (a * dn * dn + beta * tilt[g]);
+        if (floor >= best) continue;
+        let dot = 0;
+        const base = g * D;
+        for (let j = 0; j < D; j++) dot += cell[j] * res[base + j];
+        const d = bt + wS * (a * (eT + energy[g] - 2 * dot) + beta * tilt[g]);
+        if (d < best) { best = d; bestK = g; }
+      }
+      out[cy * cols + cx] = bestK;
+
+      if (dither) {
+        const err = (mu - mean[bestK]) * 0.85;
+        errCur[cx + 2] += err * 0.4375;
+        errNext[cx] += err * 0.1875;
+        errNext[cx + 1] += err * 0.3125;
+        errNext[cx + 2] += err * 0.0625;
+      }
+    }
+    if (dither) { const t = errCur; errCur = errNext; errNext = t; errNext.fill(0); }
+    const now = performance.now();
+    if (now - last > 30) {
+      onProgress((cy + 1) / rows);
+      await tick();
+      if (!alive()) return null;
+      last = performance.now();
+    }
+  }
+  return out;
+}
+
+/* ================= 描く ================= */
+
+function colorStrings(R, mode) {
+  if (R.colorCache && R.colorCache.key === mode) return R.colorCache.list;
+  const c = R.grid.colors, n = R.grid.cols * R.grid.rows, list = new Array(n);
+  for (let i = 0; i < n; i++) {
+    let r = c[i * 3], g = c[i * 3 + 1], b = c[i * 3 + 2];
+    if (mode === 'lift') {
+      // 黒地では明るさを文字の密度が受け持つので、色はあざやかに持ち上げる
+      const f = Math.pow(255 / Math.max(r, g, b, 10), 0.7);
+      r *= f; g *= f; b *= f;
+    } else {
+      // 白地では少し沈めて、淡い色も紙に負けないようにする
+      r = 255 * Math.pow(r / 255, 1.6) * 0.85;
+      g = 255 * Math.pow(g / 255, 1.6) * 0.85;
+      b = 255 * Math.pow(b / 255, 1.6) * 0.85;
+    }
+    list[i] = `rgb(${Math.min(255, r) | 0},${Math.min(255, g) | 0},${Math.min(255, b) | 0})`;
+  }
+  R.colorCache = { key: mode, list };
+  return list;
+}
+
+function paint(canvas, cs, R) {
+  const { G, grid, idx } = R;
+  const { cols, rows } = grid;
+  const pal = PALETTES[R.palette];
+  canvas.width = cols * cs;
+  canvas.height = rows * cs;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = pal.bg;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.font = `${G.weight} ${cs}px ${G.font.stack}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  const yo = cs / 2 + G.yOff * cs, half = cs / 2;
+  const colors = pal.color ? colorStrings(R, pal.color) : null;
+  if (!colors) ctx.fillStyle = pal.fg;
+  let lastColor = '';
+  for (let y = 0; y < rows; y++) {
+    const by = y * cs + yo;
+    for (let x = 0; x < cols; x++) {
+      const i = y * cols + x;
+      const ch = G.chars[idx[i]];
+      if (ch === ZSP) continue;
+      if (colors && colors[i] !== lastColor) { lastColor = colors[i]; ctx.fillStyle = lastColor; }
+      ctx.fillText(ch, x * cs + half, by);
+    }
+  }
+}
+
+// 書き出す PNG の1文字の大きさ（大きすぎる画像にならないよう上限をかける）
+function exportCellSize(want, cols, rows) {
+  const byArea = Math.floor(Math.sqrt(50e6 / (cols * rows)));
+  return Math.max(4, Math.min(want, Math.floor(16000 / Math.max(cols, rows)), byArea));
+}
+
+/* ================= 画面 ================= */
+
+const stage = $('stage'), art = $('art'), orig = $('orig'), frame = $('frame');
+const textOut = $('textOut'), stats = $('stats'), progress = $('progress');
+let source = null, sourceSeq = 0, sampleSource = null;
+let result = null, gen = 0, doneCount = 0, renderTimer = 0;
+let view = 'img', zoomed = false;
+
+let toastTimer = 0;
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.textContent = ''; }, 6000);
+}
+
+function setBusy(on, label) {
+  stage.dataset.busy = on ? '1' : '0';
+  if (on) {
+    progress.style.width = '0%';
+    if (label) stats.innerHTML = `<span class="busy">${label}</span>`;
+  } else {
+    progress.style.width = '100%';
+  }
+}
+const setProgress = (f) => { progress.style.width = `${Math.round(f * 100)}%`; };
+
+function scheduleRender(delay = 60) {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(render, delay);
+}
+
+async function render() {
+  if (!source) return;
+  const my = ++gen;
+  const alive = () => my === gen;
+  setBusy(true, '組版中…');
+  try {
+    const chars = currentChars();
+    if (!chars.length) {
+      stats.textContent = '使う文字を1つ以上選んでください';
+      setBusy(false);
+      return;
+    }
+    const font = fontById(state.font);
+    const weight = snapWeight(font, state.weight);
+    if (font.css && !fontsReady.has(`${font.id}|${weight}`)) {
+      setBusy(true, `「${font.label}」を読み込み中…`);
+      const ok = await ensureFont(font, weight, chars.join(''));
+      if (!alive()) return;
+      if (!ok) toast('書体を読み込めなかったので、端末の書体で組んでいます。通信状態を確かめてください。');
+      syncWeight();
+      setBusy(true, '組版中…');
+    }
+    const N = state.grid;
+    const G = await getGlyphs(chars, font, weight, N, alive);
+    if (!G || !alive()) return;
+    if (!G.K) {
+      stats.textContent = 'この書体では選んだ文字を描けませんでした';
+      setBusy(false);
+      return;
+    }
+    const grid = getGrid(state.cols, N);
+    const palette = state.palette;
+    const T = makeTarget(grid, PALETTES[palette].inkDark);
+    const idx = await matchCells(T, grid, G, alive, setProgress);
+    if (!idx || !alive()) return;
+    result = { G, grid, idx, palette, text: null, colorCache: null };
+    paintPreview();
+    updateRamp(G);
+    updateStats();
+    updateExportOptions();
+    if (view === 'txt') showText();
+    doneCount++;
+    stage.dataset.done = String(doneCount);
+  } catch (err) {
+    console.error(err);
+    stats.textContent = '組版できませんでした';
+    toast(`問題が起きました：${(err && err.message) || err}`);
+  } finally {
+    if (alive()) setBusy(false);
+  }
+}
+
+function availableBox() {
+  const st = getComputedStyle(stage);
+  const w = stage.clientWidth - parseFloat(st.paddingLeft) - parseFloat(st.paddingRight);
+  const desktop = window.matchMedia('(min-width: 921px)').matches;
+  const h = desktop ? Math.max(260, window.innerHeight - 190) : Infinity;
+  return { w: Math.max(100, w), h };
+}
+
+function paintPreview() {
+  if (!result) return;
+  const { cols, rows } = result.grid;
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  let cssCell;
+  if (zoomed) cssCell = 14;
+  else {
+    const box = availableBox();
+    cssCell = Math.min(box.w / cols, box.h / rows);
+  }
+  let cs = Math.max(2, Math.floor(cssCell * dpr));
+  const maxSide = 8192;
+  if (cols * cs > maxSide || rows * cs > maxSide) cs = Math.max(2, Math.floor(maxSide / Math.max(cols, rows)));
+  paint(art, cs, result);
+  art.style.width = `${(cols * cs) / dpr}px`;
+  art.style.height = `${(rows * cs) / dpr}px`;
+  stage.classList.toggle('zoomed', zoomed && view === 'img');
+}
+
+function textOf(R) {
+  if (R.text) return R.text;
+  const { cols, rows } = R.grid, lines = new Array(rows);
+  for (let y = 0; y < rows; y++) {
+    let s = '';
+    for (let x = 0; x < cols; x++) s += R.G.chars[R.idx[y * cols + x]];
+    lines[y] = s;
+  }
+  R.text = lines.join('\n');
+  return R.text;
+}
+
+function showText() {
+  if (!result) return;
+  const { w } = availableBox();
+  const size = clamp(Math.floor(w / result.grid.cols), 6, 18);
+  const pal = PALETTES[result.palette];
+  textOut.style.fontFamily = result.G.font.stack;
+  textOut.style.fontWeight = String(result.G.weight);
+  textOut.style.fontSize = `${size}px`;
+  textOut.style.background = pal.bg;
+  textOut.style.color = pal.fg;
+  textOut.textContent = textOf(result);
+}
+
+function updateStats() {
+  const { cols, rows } = result.grid;
+  const used = new Set(result.idx).size;
+  stats.textContent = `${cols}字 × ${rows}行　使用 ${used.toLocaleString()}種 ／ 候補 ${result.G.K.toLocaleString()}字`;
+}
+
+function updateRamp(G) {
+  const n = Math.min(20, G.K);
+  let s = '';
+  for (let i = 0; i < n; i++) s += G.chars[G.order[Math.round((i * (G.K - 1)) / Math.max(1, n - 1))]];
+  const ramp = $('ramp');
+  ramp.textContent = s;
+  ramp.style.fontFamily = G.font.stack;
+  ramp.style.fontWeight = String(G.weight);
+  // 漢字を使わず、いちばん濃い文字でもマスの4割に届かないと、暗いところが締まらない
+  const noKanji = !state.sets.some((s) => s.startsWith('kanji'));
+  $('charsHint').textContent = noKanji && G.dmax < 0.4
+    ? '濃い文字が少ないので、全体に淡く仕上がります。漢字を足すか、太さを上げると締まります。'
+    : '';
+}
+
+function updateColsLabel() {
+  const out = $('colsOut');
+  if (!source) { out.textContent = `${state.cols}字`; return; }
+  const { cols, rows } = gridSize(state.cols);
+  out.textContent = `${cols}字 × ${rows}行`;
+}
+
+const EXPORT_SIZES = [8, 12, 16, 24, 32];
+function updateExportOptions() {
+  const sel = $('exportCell');
+  const g = result ? result.grid : null;
+  sel.innerHTML = '';
+  for (const s of EXPORT_SIZES) {
+    const o = document.createElement('option');
+    o.value = String(s);
+    const cs = g ? exportCellSize(s, g.cols, g.rows) : s;
+    o.textContent = g ? `${s}px（${(g.cols * cs).toLocaleString()} × ${(g.rows * cs).toLocaleString()}）` : `${s}px`;
+    if (s === state.exportCell) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+
+/* ---------- 原稿 ---------- */
+
+function drawSample() {
+  const W = 1200, H = 800;
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  let seed = 11;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+  // 空（上は藍、地平に向かって明るく。雪と山肌の両方が中間の空から浮くように）
+  let gr = g.createLinearGradient(0, 0, 0, 560);
+  gr.addColorStop(0, '#3f5f96'); gr.addColorStop(1, '#bfd0e3');
+  g.fillStyle = gr; g.fillRect(0, 0, W, 560);
+  // 横雲
+  g.save();
+  g.filter = 'blur(10px)';
+  g.fillStyle = 'rgba(255,255,255,0.75)';
+  for (const [x, y, rx, ry] of [[170, 96, 150, 16], [420, 70, 120, 12], [1050, 360, 140, 14], [740, 120, 90, 10]]) {
+    g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); g.fill();
+  }
+  g.restore();
+  // 日輪
+  const glow = g.createRadialGradient(930, 205, 40, 930, 205, 150);
+  glow.addColorStop(0, 'rgba(255,226,160,0.55)'); glow.addColorStop(1, 'rgba(255,226,160,0)');
+  g.fillStyle = glow; g.fillRect(770, 50, 320, 320);
+  g.fillStyle = '#f9c46b'; g.beginPath(); g.arc(930, 205, 70, 0, Math.PI * 2); g.fill();
+  // 鳥
+  g.strokeStyle = '#1a2142'; g.lineWidth = 4; g.lineCap = 'round';
+  for (const [x, y, s] of [[250, 150, 1], [305, 188, 0.8], [350, 138, 0.9], [410, 172, 0.7]]) {
+    g.beginPath();
+    g.moveTo(x - 22 * s, y - 8 * s);
+    g.quadraticCurveTo(x - 10 * s, y - 15 * s, x, y);
+    g.quadraticCurveTo(x + 10 * s, y - 15 * s, x + 22 * s, y - 8 * s);
+    g.stroke();
+  }
+  // 富士
+  const mountain = () => {
+    g.beginPath(); g.moveTo(80, 560); g.lineTo(520, 210); g.quadraticCurveTo(580, 197, 640, 210); g.lineTo(1120, 560); g.closePath();
+  };
+  gr = g.createLinearGradient(0, 210, 0, 560);
+  gr.addColorStop(0, '#2d3f70'); gr.addColorStop(1, '#18223f');
+  g.fillStyle = gr; mountain(); g.fill();
+  const Lx = (y) => 520 - (y - 210) * 1.257, Rx = (y) => 640 + (y - 210) * 1.371;
+  g.fillStyle = '#f3f5fa';
+  g.beginPath(); g.moveTo(520, 210); g.quadraticCurveTo(580, 197, 640, 210); g.lineTo(Rx(325), 325);
+  for (const [x, y] of [[752, 300], [716, 352], [680, 306], [642, 362], [602, 302], [562, 356], [522, 306], [482, 348], [446, 302]]) g.lineTo(x, y);
+  g.lineTo(Lx(325), 325); g.closePath(); g.fill();
+  // 中腹にかかる雲
+  g.save();
+  g.filter = 'blur(12px)';
+  g.fillStyle = 'rgba(255,255,255,0.75)';
+  for (const [x, y, rx, ry] of [[300, 450, 150, 20], [820, 440, 180, 22]]) {
+    g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); g.fill();
+  }
+  g.restore();
+  // 湖
+  gr = g.createLinearGradient(0, 560, 0, H);
+  gr.addColorStop(0, '#e6edf3'); gr.addColorStop(1, '#a9bad2');
+  g.fillStyle = gr; g.fillRect(0, 560, W, H - 560);
+  // 逆さ富士
+  g.save(); g.globalAlpha = 0.3; g.translate(0, 1120); g.scale(1, -1); g.fillStyle = '#18223f'; mountain(); g.fill(); g.restore();
+  // 対岸の木々
+  g.fillStyle = '#141a2e';
+  g.beginPath(); g.moveTo(0, 568);
+  for (let x = 0; x <= W; x += 12) g.lineTo(x, 556 - rnd() * 10);
+  g.lineTo(W, 568); g.closePath(); g.fill();
+  // さざ波
+  g.fillStyle = 'rgba(255,255,255,0.5)';
+  for (let i = 0; i < 80; i++) g.fillRect(rnd() * W, 580 + rnd() * 215, 24 + rnd() * 90, 2);
+  // 鳥居
+  g.fillStyle = '#c8412d';
+  g.fillRect(186, 470, 20, 270); g.fillRect(334, 470, 20, 270);
+  g.fillRect(160, 520, 220, 16);
+  g.fillRect(262, 476, 16, 44);
+  g.beginPath(); g.moveTo(138, 452); g.quadraticCurveTo(270, 470, 402, 452); g.lineTo(398, 474); g.quadraticCurveTo(270, 490, 142, 474); g.closePath(); g.fill();
+  g.fillStyle = '#1c1719';
+  g.beginPath(); g.moveTo(124, 436); g.quadraticCurveTo(270, 462, 416, 436); g.lineTo(410, 452); g.quadraticCurveTo(270, 474, 130, 452); g.closePath(); g.fill();
+  g.save(); g.globalAlpha = 0.3; g.fillStyle = '#c8412d';
+  g.fillRect(186, 742, 20, 58); g.fillRect(334, 742, 20, 58);
+  g.restore();
+  return c;
+}
+
+function setSource(src) {
+  source = Object.assign({ id: ++sourceSeq }, src);
+  $('thumb').src = src.url;
+  orig.src = src.url;
+  $('srcMeta').textContent = `${src.label}　${src.w.toLocaleString()} × ${src.h.toLocaleString()}px`;
+  $('useSample').hidden = !!src.sample;
+  gridCache.clear();
+  updateColsLabel();
+  scheduleRender(0);
+}
+
+function useSample() {
+  if (!sampleSource) {
+    const c = drawSample();
+    sampleSource = { el: c, w: c.width, h: c.height, url: c.toDataURL('image/jpeg', 0.88), name: 'サンプル', label: 'サンプル画像（富士と鳥居）', sample: true };
+  }
+  if (source && !source.sample && source.url) URL.revokeObjectURL(source.url);
+  setSource(sampleSource);
+}
+
+function loadFile(file) {
+  if (!file) return;
+  if (file.type && !file.type.startsWith('image/')) { toast('画像ファイルを選んでください。'); return; }
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.decoding = 'async';
+  img.onload = () => {
+    if (!img.naturalWidth || !img.naturalHeight) { toast('この画像は大きさを読み取れませんでした。'); return; }
+    if (source && !source.sample && source.url) URL.revokeObjectURL(source.url);
+    const name = (file.name || '画像').replace(/\.[^.]+$/, '') || '画像';
+    setSource({ el: img, w: img.naturalWidth, h: img.naturalHeight, url, name, label: file.name || '貼り付けた画像', sample: false });
+    toast('画像を読み込みました。');
+  };
+  img.onerror = () => {
+    URL.revokeObjectURL(url);
+    toast('この画像は読み込めませんでした。JPEG・PNG・WebP などの形式でお試しください。');
+  };
+  img.src = url;
+}
+
+const fileInput = $('file'), drop = $('drop'), veil = $('veil');
+drop.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => { loadFile(fileInput.files[0]); fileInput.value = ''; });
+$('useSample').addEventListener('click', useSample);
+
+let dragDepth = 0;
+const hasFiles = (e) => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files');
+window.addEventListener('dragenter', (e) => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth++; veil.hidden = false; drop.classList.add('over'); });
+window.addEventListener('dragover', (e) => { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) { veil.hidden = true; drop.classList.remove('over'); } });
+window.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dragDepth = 0; veil.hidden = true; drop.classList.remove('over');
+  const f = e.dataTransfer && Array.from(e.dataTransfer.files || []).find((x) => !x.type || x.type.startsWith('image/'));
+  if (f) loadFile(f); else toast('画像ファイルをドロップしてください。');
+});
+document.addEventListener('paste', (e) => {
+  if (e.target && e.target.id === 'custom') return;
+  const items = Array.from((e.clipboardData && e.clipboardData.items) || []);
+  const it = items.find((x) => x.kind === 'file' && x.type.startsWith('image/'));
+  if (it) { e.preventDefault(); loadFile(it.getAsFile()); }
+});
+
+/* ---------- 指定欄 ---------- */
+
+const chipsEl = $('chips');
+for (const s of SETS) {
+  const n = setChars(s.id).length;
+  if (!n) continue;
+  const lab = document.createElement('label');
+  lab.className = 'chip';
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.id = `set-${s.id}`;
+  input.checked = state.sets.includes(s.id);
+  const span = document.createElement('span');
+  span.textContent = s.label;
+  if (s.id !== 'blank') { const em = document.createElement('em'); em.textContent = n.toLocaleString(); span.appendChild(em); }
+  lab.append(input, span);
+  chipsEl.appendChild(lab);
+  input.addEventListener('change', () => {
+    state.sets = SETS.filter((x) => { const el = $(`set-${x.id}`); return el && el.checked; }).map((x) => x.id);
+    persist();
+    scheduleRender(30);
+  });
+}
+
+const customEl = $('custom');
+customEl.value = state.custom;
+customEl.addEventListener('input', () => { state.custom = customEl.value; persist(); scheduleRender(350); });
+
+function bindRange(id, key, fmt, after) {
+  const el = $(id), out = $(`${id}Out`);
+  el.value = String(state[key]);
+  const show = () => { if (out) out.textContent = fmt(state[key]); };
+  show();
+  el.addEventListener('input', () => {
+    state[key] = Number(el.value);
+    show();
+    persist();
+    if (after) after();
+    scheduleRender(key === 'cols' ? 90 : 50);
+  });
+}
+const signed = (v) => (v > 0 ? `+${v}` : String(v));
+bindRange('cols', 'cols', (v) => `${v}字`, updateColsLabel);
+bindRange('shape', 'shape', (v) => (v === 50 ? '半々' : v > 50 ? `形 ${v}` : `濃淡 ${100 - v}`));
+bindRange('sharpen', 'sharpen', (v) => String(v));
+bindRange('bright', 'bright', signed);
+bindRange('contrast', 'contrast', signed);
+
+const fontSel = $('font'), weightEl = $('weight'), weightOut = $('weightOut');
+const GROUP_LABELS = { dev: '端末まかせ', local: 'この端末の書体', web: 'Webフォント（初回は読み込みに数秒）' };
+for (const grp of ['dev', 'local', 'web']) {
+  const list = availableFonts.filter((f) => f.group === grp);
+  if (!list.length) continue;
+  const og = document.createElement('optgroup');
+  og.label = GROUP_LABELS[grp];
+  for (const f of list) {
+    const o = document.createElement('option');
+    o.value = f.id;
+    o.textContent = f.label;
+    og.appendChild(o);
+  }
+  fontSel.appendChild(og);
+}
+fontSel.value = state.font;
+function syncWeight() {
+  const f = fontById(state.font);
+  const w = snapWeight(f, state.weight);
+  weightEl.disabled = f.weights.length < 2;
+  weightEl.value = String(w);
+  weightOut.textContent = f.weights.length < 2 ? `${w}（この書体は固定）` : String(w);
+  $('fontHint').textContent = f.group === 'dev'
+    ? '端末によって見た目が少し変わります。'
+    : f.group === 'web' && !fontsReady.has(`${f.id}|${w}`) ? '初めて選ぶときは書体データを読み込みます。' : '';
+}
+syncWeight();
+fontSel.addEventListener('change', () => { state.font = fontSel.value; persist(); syncWeight(); scheduleRender(0); });
+weightEl.addEventListener('input', () => {
+  const f = fontById(state.font);
+  state.weight = snapWeight(f, Number(weightEl.value));
+  weightEl.value = String(state.weight);
+  syncWeight();
+  persist();
+  scheduleRender(60);
+});
+
+for (const n of [3, 4, 5, 6]) {
+  const r = $(`grid${n}`);
+  r.checked = state.grid === n;
+  r.addEventListener('change', () => { if (r.checked) { state.grid = n; persist(); scheduleRender(0); } });
+}
+
+for (const key of ['auto', 'dither']) {
+  const el = $(key);
+  el.checked = !!state[key];
+  el.addEventListener('change', () => { state[key] = el.checked; persist(); scheduleRender(0); });
+}
+
+const palEl = $('palettes');
+for (const [id, p] of Object.entries(PALETTES)) {
+  const lab = document.createElement('label');
+  lab.className = 'swatch';
+  const input = document.createElement('input');
+  input.type = 'radio';
+  input.name = 'palette';
+  input.id = `pal-${id}`;
+  input.value = id;
+  input.checked = state.palette === id;
+  const span = document.createElement('span');
+  const b = document.createElement('b');
+  b.style.background = p.bg;
+  if (p.color) {
+    // カラーの見本は三色のグラデーションで「彩」の字を塗る
+    b.innerHTML = `<svg viewBox="0 0 30 30" width="30" height="30" aria-hidden="true"><defs><linearGradient id="g-${id}" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#e2553e"/><stop offset="0.5" stop-color="#e3b23c"/><stop offset="1" stop-color="#3f7fd6"/></linearGradient></defs><text x="15" y="22" text-anchor="middle" font-size="18" font-weight="800" fill="url(#g-${id})" style="font-family:var(--font-display)">彩</text></svg>`;
+  } else {
+    b.textContent = '墨';
+    b.style.color = p.fg;
+  }
+  span.append(b, document.createTextNode(p.label));
+  lab.append(input, span);
+  palEl.appendChild(lab);
+  input.addEventListener('change', () => {
+    if (!input.checked) return;
+    const prev = state.palette;
+    state.palette = id;
+    persist();
+    if (result && PALETTES[prev].inkDark === p.inkDark) {
+      // 濃淡の向きが同じなら文字の選び直しは要らない
+      result.palette = id;
+      paintPreview();
+      if (view === 'txt') showText();
+    } else {
+      scheduleRender(0);
+    }
+  });
+}
+
+const exportSel = $('exportCell');
+updateExportOptions();
+exportSel.addEventListener('change', () => { state.exportCell = Number(exportSel.value); persist(); });
+
+/* ---------- 表示の切り替え ---------- */
+
+const tabImg = $('tabImg'), tabTxt = $('tabTxt');
+function setView(v) {
+  view = v;
+  tabImg.setAttribute('aria-selected', String(v === 'img'));
+  tabTxt.setAttribute('aria-selected', String(v === 'txt'));
+  tabImg.tabIndex = v === 'img' ? 0 : -1;
+  tabTxt.tabIndex = v === 'txt' ? 0 : -1;
+  frame.hidden = v !== 'img';
+  textOut.hidden = v !== 'txt';
+  $('compare').disabled = v !== 'img';
+  $('zoom').disabled = v !== 'img';
+  stage.classList.toggle('zoomed', v === 'img' && zoomed);
+  if (v === 'txt') showText();
+}
+tabImg.addEventListener('click', () => setView('img'));
+tabTxt.addEventListener('click', () => setView('txt'));
+for (const t of [tabImg, tabTxt]) {
+  t.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const next = view === 'img' ? 'txt' : 'img';
+    setView(next);
+    (next === 'img' ? tabImg : tabTxt).focus();
+  });
+}
+
+const zoomBtn = $('zoom');
+zoomBtn.addEventListener('click', () => {
+  zoomed = !zoomed;
+  zoomBtn.setAttribute('aria-pressed', String(zoomed));
+  zoomBtn.textContent = zoomed ? '全体を見る' : '拡大して見る';
+  paintPreview();
+});
+
+const cmp = $('compare');
+const showOrig = (on) => { orig.hidden = !on; cmp.setAttribute('aria-pressed', String(on)); };
+cmp.addEventListener('pointerdown', (e) => { if (cmp.disabled) return; try { cmp.setPointerCapture(e.pointerId); } catch (err) { /* 古い環境 */ } showOrig(true); });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture', 'blur']) cmp.addEventListener(ev, () => showOrig(false));
+cmp.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showOrig(true); } });
+cmp.addEventListener('keyup', () => showOrig(false));
+cmp.addEventListener('contextmenu', (e) => e.preventDefault());
+
+let resizeTimer = 0;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { paintPreview(); if (view === 'txt') showText(); }, 120);
+});
+
+/* ---------- 書き出し ---------- */
+
+// claude.ai の Artifact として開かれたときは downloads 機能で保存し、単体の HTML ではふつうにダウンロードする
+const framed = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+let downloads = null;
+let downloadsCheck = Promise.resolve(null);
+if (window.claude && typeof window.claude.use === 'function') {
+  downloadsCheck = window.claude.use('downloads').then((d) => { downloads = d; return d; }, () => null);
+  downloadsCheck.then((d) => {
+    if (!d && framed) {
+      $('saveTxt').hidden = true;
+      $('savePng').hidden = true;
+      $('exportSection').hidden = true;
+    }
+  });
+}
+
+async function offerFile(filename, blob) {
+  await downloadsCheck;
+  if (downloads) {
+    try {
+      await downloads.save({ filename, data: blob });
+      toast('保存しました。');
+    } catch (e) {
+      const code = e && e.code;
+      if (code === 'declined') toast('保存を取りやめました。');
+      else if (code === 'rate_limited') toast('前の保存の確認がまだ開いています。少し待ってからもう一度押してください。');
+      else if (code === 'too_large') toast('ファイルが大きすぎます。PNGの1文字の大きさを小さくしてください。');
+      else toast('この画面ではファイルを保存できません。テキストのコピーをお使いください。');
+    }
+    return;
+  }
+  if (framed) { toast('この画面ではファイルを保存できません。テキストのコピーをお使いください。'); return; }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  toast('ダウンロードを始めました。');
+}
+
+const baseName = () => (source ? source.name : '文字絵');
+
+$('copyText').addEventListener('click', () => {
+  if (!result) return;
+  const text = textOf(result);
+  const { cols, rows } = result.grid;
+  const fallback = () => {
+    setView('txt');
+    const range = document.createRange();
+    range.selectNodeContents(textOut);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    toast(ok ? `コピーしました（${cols}字 × ${rows}行）。` : 'テキストを選択しました。Ctrl+C（⌘+C）でコピーしてください。');
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    // 環境によっては返事がないまま止まるので、少し待って選択に切り替える
+    let settled = false;
+    const timer = setTimeout(() => { if (!settled) { settled = true; fallback(); } }, 1500);
+    navigator.clipboard.writeText(text).then(
+      () => { if (settled) return; settled = true; clearTimeout(timer); toast(`コピーしました（${cols}字 × ${rows}行）。貼り付け先では等幅の日本語書体で表示すると形がそろいます。`); },
+      () => { if (settled) return; settled = true; clearTimeout(timer); fallback(); },
+    );
+  } else fallback();
+});
+
+$('saveTxt').addEventListener('click', () => {
+  if (!result) return;
+  offerFile(`${baseName()}_文字絵.txt`, new Blob([textOf(result)], { type: 'text/plain;charset=utf-8' }));
+});
+
+$('savePng').addEventListener('click', async () => {
+  if (!result) return;
+  const { cols, rows } = result.grid;
+  const c = document.createElement('canvas');
+  paint(c, exportCellSize(state.exportCell, cols, rows), result);
+  const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
+  if (!blob) { toast('画像を作れませんでした。1文字の大きさを小さくしてお試しください。'); return; }
+  offerFile(`${baseName()}_文字絵.png`, blob);
+});
+
+/* ---------- はじめに ---------- */
+setView('img');
+useSample();
+})();
+</script>
+</body>
+</html>
